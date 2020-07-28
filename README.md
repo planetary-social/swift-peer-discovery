@@ -52,3 +52,7 @@
    > the article about [Measuring Peer-to-Peer Connection Reliability](TODO) describes in detail how the reliability is being calculated, 
    > as well as tips on how to use such reliability metrics to maximize the flow of information in your app.
 
+## Hacking
+
+...
+
