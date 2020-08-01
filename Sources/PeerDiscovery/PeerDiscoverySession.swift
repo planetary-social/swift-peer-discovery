@@ -2,7 +2,7 @@ import Combine
 
 /// ...
 @available(OSX 10.15, *)
-public class PeerToPeerSession {
+public class PeerDiscoverySession {
     
     /// The peer being announced and represented on the distributed network.
     public let impersonating: Peer
