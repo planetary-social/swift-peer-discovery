@@ -79,7 +79,6 @@ public class MulticastGroupRadar: ChannelInboundHandler, ConnectablePublisher, C
     
     public enum Failure: Error {
         
-        case cannotConnectInCurrentState(State)
         case cannotJoinMulticastGroup(cause: Error)
         case cannotCancelChannel(cause: Error)
         case connectionError(cause: Error)
@@ -161,10 +160,10 @@ public class MulticastGroupRadar: ChannelInboundHandler, ConnectablePublisher, C
         
         switch lastRecordedStatus {
         case .connecting, .joining(_), .listening(_):
-            Self.logger.trace("already in the multicast group")
+            Self.logger.trace("already requested connection")
             return self
         case .cancelled, .failed:
-            downstream.send(completion: .failure(.cannotConnectInCurrentState(lastRecordedStatus)))
+            Self.logger.error("cannot connect in terminal state")
             return self
         default:
             break // See below...
@@ -212,7 +211,6 @@ public class MulticastGroupRadar: ChannelInboundHandler, ConnectablePublisher, C
                 }
                 .wait() // XXX: Should not wait here...
         } catch (let error) {
-            Self.logger.warning("cannot join the multicast group: \(error)")
             downstream.send(completion: .failure(.cannotJoinMulticastGroup(cause: error)))
             statusUpdates.send(.failed)
         }
@@ -226,13 +224,14 @@ public class MulticastGroupRadar: ChannelInboundHandler, ConnectablePublisher, C
         statusUpdates.send(.cancelled)
         
         do { try channel?.close().wait() } catch (let error) {
-            Self.logger.warning("cannot cancel the channel: \(error)")
             downstream.send(completion: .failure(.cannotCancelChannel(cause: error)))
             statusUpdates.send(.failed)
             return
         }
 
-        channel = nil
+        channel = nil        
+        subcomponents.forEach { $0.cancel() }
+        statusUpdates.send(completion: .finished)
         downstream.send(completion: .finished)
     }
 

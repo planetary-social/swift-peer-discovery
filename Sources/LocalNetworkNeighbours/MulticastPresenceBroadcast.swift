@@ -258,7 +258,6 @@ public final class MulticastPresenceBroadcast: ChannelOutboundHandler, Cancellab
         }
         
         statusUpdates.send(.cancelled)
-        statusUpdates.send(completion: .finished)
         
         do { try channel?.close().wait() } catch (let error) {
             malfunctionReports.send(error)
@@ -266,6 +265,7 @@ public final class MulticastPresenceBroadcast: ChannelOutboundHandler, Cancellab
 
         channel = nil
         subcomponents.forEach { $0.cancel() }
+        statusUpdates.send(completion: .finished)
         malfunctionReports.send(completion: .finished)
     }
     
