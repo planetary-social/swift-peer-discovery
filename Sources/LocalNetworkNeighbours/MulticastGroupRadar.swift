@@ -9,7 +9,6 @@ import NIO
 
 /// - Note: Cannot be suspended, because there's no way to suspend a server from listening...
 
-public class MulticastGroupRadar: ChannelInboundHandler, ConnectablePublisher, Cancellable {
     
     /// ...
 
@@ -146,76 +145,4 @@ public class MulticastGroupRadar: ChannelInboundHandler, ConnectablePublisher, C
             }
     }
     
-    /// ...
-    
-    public func receive<S>(subscriber: S)
-    where S: Subscriber, Failure == S.Failure, Output == S.Input {
-        Self.logger.trace("got a subscription request")
-        self.sharedDownstream.receive(subscriber: subscriber)
-    }
-    
-    /// ...
-    
-    public func connect() -> Cancellable {
-        
-        switch lastRecordedStatus {
-        case .connecting, .joining(_), .listening(_):
-            Self.logger.trace("already requested connection")
-            return self
-        case .cancelled, .failed:
-            Self.logger.error("cannot connect in terminal state")
-            return self
-        default:
-            break // See below...
-        }
-        
-        statusUpdates.send(.connecting)
-        
-        let bootstrap =
-            DatagramBootstrap(group: group)
-            .channelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
-            .channelInitializer { channel in return channel.pipeline.addHandlers(self) }
-        
-        do {
-            self.channel =
-                try
-                bootstrap
-                .bind(to: self.local)
-                .flatMap { channel -> EventLoopFuture<Channel> in
-                    let channel = channel as! MulticastChannel
-                    self.statusUpdates.send(.joining(multicastGroup: self.remote))
-                    return channel.joinGroup(self.remote).map { channel }
-                }
-                .flatMap { channel -> EventLoopFuture<MulticastChannel> in
-                    let provider = channel as! SocketOptionProvider
-                                        
-                    //guard
-                    //    let netInterface = try! System.enumerateInterfaces().first(where: \.multicastSupported)
-                    //else {
-                    //    preconditionFailure("Can't find a suitable interface!")
-                    //}
-                    
-                    switch self.local {
-                    case .v4(let addr):
-                        return provider.setIPMulticastIF(addr.address.sin_addr).map {
-                            self.statusUpdates.send(.listening(at: self.local))
-                            return channel as! MulticastChannel
-                        }
-                    //case .v6:
-                    //    return provider.setIPv6MulticastIF(CUnsignedInt(netInterface.interfaceIndex)).map {
-                    //        return channel as! MulticastChannel
-                    //    }
-                    default:
-                        preconditionFailure("Impossible!")
-                    }
-                }
-                .wait() // XXX: Should not wait here...
-        } catch (let error) {
-            downstream.send(completion: .failure(.cannotJoinMulticastGroup(cause: error)))
-            statusUpdates.send(.failed)
-        }
-        
-        return self
-    }
-
 }
