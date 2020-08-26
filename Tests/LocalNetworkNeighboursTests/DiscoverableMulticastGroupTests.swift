@@ -22,7 +22,7 @@ final class DiscoverableMulticastGroupTests: XCTestCase {
 
         let expectedDiscoveryFinish = expectation(description: "expected to discover peers")
 
-        let radar = MulticastGroupRadar(at: multicastGroupHost, from: localHost, using: eventLoopGroup)
+        let radar = MulticastGroupRadar(at: multicastGroupHost, from: localHost, in: eventLoopGroup)
         let discovery =
             radar
             .autoconnect()
