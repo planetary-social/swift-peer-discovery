@@ -1,25 +1,42 @@
 import Combine
+import NIO
 
 ///
 
 extension MulticastGroupRadar: ConnectablePublisher {
 
+    ///
+
+    public typealias Output = PresenceDatagram
+
+    ///
+
+    public enum Failure: Error {
+
+        case cannotJoinMulticastGroup(cause: Error)
+        case cannotCancelChannel(cause: Error)
+        case connectionError(cause: Error)
+
+    }
+
+    //
+
+    public func receive<S>(subscriber: S)
+    where S: Subscriber, Failure == S.Failure, Output == S.Input {
+        Self.logger.trace("got a subscription request")
+        self.sharedDownstream.receive(subscriber: subscriber)
+    }
+
     /// ...
 
     public func connect() -> Cancellable {
 
-        switch lastRecordedStatus {
-        case .connecting, .joining(_), .listening(_):
-            Self.logger.trace("already requested connection")
+        guard lastRecordedStatus.allowsTransition(to: .starting) else {
+            MulticastGroupRadar.logger.warning("cannot connect when \(lastRecordedStatus)") // FIXME!
             return self
-        case .cancelled, .failed:
-            Self.logger.error("cannot connect in terminal state")
-            return self
-        default:
-            break // See below...
         }
 
-        statusUpdates.send(.connecting)
+        statusUpdates.send(.starting)
 
         do {
             self.channel =
