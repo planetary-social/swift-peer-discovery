@@ -15,4 +15,8 @@ where Self.Output == Presence
 
     associatedtype Presence: PresenceInfo
 
+    ///
+
+    associatedtype State: Equatable & CustomStringConvertible
+
 }
