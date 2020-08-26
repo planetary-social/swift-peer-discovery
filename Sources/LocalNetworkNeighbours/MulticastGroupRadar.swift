@@ -99,7 +99,7 @@ public class MulticastGroupRadar: ChannelInboundHandler {
     
     private var statusLogging: Cancellable {
         return statusUpdates.sink { latestStatus in
-            logger.trace("status update: \(latestStatus) ")
+            self.logger.trace("status update: \(latestStatus) ")
         }
     }
 
@@ -108,11 +108,11 @@ public class MulticastGroupRadar: ChannelInboundHandler {
         return
             downstream
             .catch { error -> Empty<Output, Never> in
-                logger.error("radar failed: \(error)")
+                self.logger.error("radar failed: \(error)")
                 return Empty(completeImmediately: true)
             }
             .sink { detectedPresence in
-                logger.trace("peer presence detected: \(detectedPresence)")
+                self.logger.trace("peer presence detected: \(detectedPresence)")
             }
     }
     
