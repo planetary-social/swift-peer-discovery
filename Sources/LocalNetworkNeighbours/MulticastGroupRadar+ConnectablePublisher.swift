@@ -36,7 +36,7 @@ extension MulticastGroupRadar: ConnectablePublisher {
             return self
         }
 
-        statusUpdates.send(.starting)
+        status.send(.starting)
 
         do {
             self.channel =
@@ -46,7 +46,7 @@ extension MulticastGroupRadar: ConnectablePublisher {
                 .bind(to: self.local)
                 .flatMap { channel -> EventLoopFuture<Channel> in
                     let channel = channel as! MulticastChannel
-                    self.statusUpdates.send(.joining(multicastGroup: self.remote))
+                    self.status.send(.joining(multicastGroup: self.remote))
                     return channel.joinGroup(self.remote).map { channel }
                 }
                 .flatMap { channel -> EventLoopFuture<MulticastChannel> in
@@ -54,7 +54,7 @@ extension MulticastGroupRadar: ConnectablePublisher {
 
                     if case .v4(let addr) = self.local {
                         return socketOptions.setIPMulticastIF(addr.address.sin_addr).map {
-                            self.statusUpdates.send(.listening(at: self.local))
+                            self.status.send(.listening(at: self.local))
                             return channel as! MulticastChannel
                         }
                     } else {
@@ -63,7 +63,7 @@ extension MulticastGroupRadar: ConnectablePublisher {
                 }
                 .wait() // XXX: Maybe should not wait here...
         } catch (let error) {
-            statusUpdates.send(.failed)
+            status.send(.failed)
             downstream.send(completion: .failure(.cannotJoinMulticastGroup(cause: error)))
         }
 

@@ -25,7 +25,7 @@ public class MulticastGroupRadar: ChannelInboundHandler {
 
     /// ...
     
-    public var status: AnyPublisher<State, Never> { return statusUpdates.eraseToAnyPublisher() }
+    public var statusUpdates: AnyPublisher<State, Never> { return status.eraseToAnyPublisher() }
     
     /// ...
     
@@ -33,7 +33,7 @@ public class MulticastGroupRadar: ChannelInboundHandler {
     
     /// ...
     
-    internal var statusUpdates = CurrentValueSubject<State, Never>(.idle)
+    internal var status = CurrentValueSubject<State, Never>(.idle)
 
     /// ...
     
@@ -89,7 +89,7 @@ public class MulticastGroupRadar: ChannelInboundHandler {
         self.logger = logger ?? Logger(label: Self.debugLabel)
         
         self.subcomponents.append(contentsOf: [
-            statusUpdates.assign(to: \.lastRecordedStatus, on: self),
+            status.assign(to: \.lastRecordedStatus, on: self),
             downstreamLogging,
             statusLogging,
         ])
@@ -98,7 +98,7 @@ public class MulticastGroupRadar: ChannelInboundHandler {
     /// ...
     
     private var statusLogging: Cancellable {
-        return status.sink { latestStatus in
+        return statusUpdates.sink { latestStatus in
             logger.trace("status update: \(latestStatus) ")
         }
     }
