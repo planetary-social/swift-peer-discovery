@@ -13,11 +13,11 @@ public class MulticastGroupRadar: ChannelInboundHandler {
     
     /// ...
 
-    public static let debugLabel = "social.planetary.peer-discovery.MulticastGroupRadar"
+    internal static let debugLabel = "social.planetary.peer-discovery.MulticastGroupRadar"
     
     /// ...
 
-    public static var logger = Logger(label: debugLabel)
+    public var logger: Logger
 
     /// ...
     
@@ -45,7 +45,7 @@ public class MulticastGroupRadar: ChannelInboundHandler {
             let message = buffer.readString(length: buffer.readableBytes)?.data(using: .utf8),
             let detectedPresence = PresenceDatagram(rawValue: message)
         else {
-            Self.logger.warning("unable to read peer announcement")
+            logger.warning("unable to read peer announcement")
             return
         }
 
@@ -79,11 +79,14 @@ public class MulticastGroupRadar: ChannelInboundHandler {
     
     /// ...
     
-    public init(at remote: SocketAddress, from local: SocketAddress?, in group: EventLoopGroup) {
+    public init(at remote: SocketAddress, from local: SocketAddress?,
+                in group: EventLoopGroup,
+                loggingWith logger: Logger? = nil) {
         self.remote = remote
         self.local = local ?? Self.defaultLocalHost
         self.group = group
         self.sharedDownstream = downstream.share().eraseToAnyPublisher()
+        self.logger = logger ?? Logger(label: Self.debugLabel)
         
         self.subcomponents.append(contentsOf: [
             statusUpdates.assign(to: \.lastRecordedStatus, on: self),
@@ -96,7 +99,7 @@ public class MulticastGroupRadar: ChannelInboundHandler {
     
     private var statusLogging: Cancellable {
         return status.sink { latestStatus in
-            Self.logger.trace("status update: \(latestStatus) ")
+            logger.trace("status update: \(latestStatus) ")
         }
     }
 
@@ -105,11 +108,11 @@ public class MulticastGroupRadar: ChannelInboundHandler {
         return
             downstream
             .catch { error -> Empty<Output, Never> in
-                Self.logger.error("radar failed: \(error)")
+                logger.error("radar failed: \(error)")
                 return Empty(completeImmediately: true)
             }
             .sink { detectedPresence in
-                Self.logger.trace("peer presence detected: \(detectedPresence)")
+                logger.trace("peer presence detected: \(detectedPresence)")
             }
     }
     

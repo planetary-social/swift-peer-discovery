@@ -23,7 +23,7 @@ extension MulticastGroupRadar: ConnectablePublisher {
 
     public func receive<S>(subscriber: S)
     where S: Subscriber, Failure == S.Failure, Output == S.Input {
-        Self.logger.trace("got a subscription request")
+        logger.trace("got a subscription request")
         self.sharedDownstream.receive(subscriber: subscriber)
     }
 
@@ -32,7 +32,7 @@ extension MulticastGroupRadar: ConnectablePublisher {
     public func connect() -> Cancellable {
 
         guard lastRecordedStatus.allowsTransition(to: .starting) else {
-            MulticastGroupRadar.logger.warning("cannot connect when \(lastRecordedStatus)") // FIXME!
+            logger.warning("cannot connect when \(lastRecordedStatus)")
             return self
         }
 
