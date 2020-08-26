@@ -1,12 +1,13 @@
+import PeerDiscovery // FIXME: replace with wherever we will import Stateful from
 import NIO
 
 ///
 
-public extension MulticastGroupRadar {
+extension MulticastGroupRadar: Stateful {
 
     ///
 
-    enum State: Equatable, CustomStringConvertible {
+    public enum State: Equatable, CustomStringConvertible {
 
         /// ...
 
