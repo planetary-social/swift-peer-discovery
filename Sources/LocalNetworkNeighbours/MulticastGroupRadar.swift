@@ -26,14 +26,14 @@ public class MulticastGroupRadar: ChannelInboundHandler {
     /// ...
     
     public var statusUpdates: AnyPublisher<State, Never> { return status.eraseToAnyPublisher() }
-    
-    /// ...
-    
-    internal var lastRecordedStatus: State = .idle
-    
+
     /// ...
     
     internal var status = CurrentValueSubject<State, Never>(.idle)
+
+    /// ...
+
+    internal var lastRecordedStatus: State = .idle
 
     /// ...
     
