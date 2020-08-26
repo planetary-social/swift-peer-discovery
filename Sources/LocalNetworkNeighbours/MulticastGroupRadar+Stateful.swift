@@ -1,9 +1,14 @@
 import PeerDiscovery // FIXME: replace with wherever we will import Stateful from
+import Combine
 import NIO
 
 ///
 
 extension MulticastGroupRadar: Stateful {
+
+    /// ...
+
+    public var statusUpdates: AnyPublisher<State, Never> { status.eraseToAnyPublisher() }
 
     ///
 
