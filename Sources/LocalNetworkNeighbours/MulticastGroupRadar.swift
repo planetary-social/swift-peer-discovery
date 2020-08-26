@@ -9,6 +9,7 @@ import NIO
 
 /// - Note: Cannot be suspended, because there's no way to suspend a server from listening...
 
+public class MulticastGroupRadar: ChannelInboundHandler {
     
     /// ...
 
@@ -21,25 +22,6 @@ import NIO
     /// ...
     
     public typealias InboundIn = AddressedEnvelope<ByteBuffer>
-    
-    /// ...
-    
-    public enum State: Equatable {
-        
-        /// ...
-        
-        case idle, connecting
-        
-        /// ...
-        
-        case joining(multicastGroup: SocketAddress)
-        case listening(at: SocketAddress)
-        
-        /// ...
-        
-        case cancelled, failed
-        
-    }
 
     /// ...
     
@@ -47,11 +29,11 @@ import NIO
     
     /// ...
     
-    private var lastRecordedStatus: State = .idle
+    internal var lastRecordedStatus: State = .idle
     
     /// ...
     
-    private var statusUpdates = CurrentValueSubject<State, Never>(.idle)
+    internal var statusUpdates = CurrentValueSubject<State, Never>(.idle)
 
     /// ...
     
@@ -61,7 +43,7 @@ import NIO
 
         guard
             let message = buffer.readString(length: buffer.readableBytes)?.data(using: .utf8),
-            let detectedPresence = PeerPresence(rawValue: message)
+            let detectedPresence = PresenceDatagram(rawValue: message)
         else {
             Self.logger.warning("unable to read peer announcement")
             return
@@ -72,22 +54,8 @@ import NIO
     
     /// ...
     
-    public typealias Output = PeerPresence
-    
-    /// ...
-    
-    public enum Failure: Error {
-        
-        case cannotJoinMulticastGroup(cause: Error)
-        case cannotCancelChannel(cause: Error)
-        case connectionError(cause: Error)
-        
-    }
-
-    /// ...
-    
-    private let downstream = PassthroughSubject<Output, Failure>()
-    private var sharedDownstream: AnyPublisher<Output, Failure>
+    internal let downstream = PassthroughSubject<Output, Failure>()
+    internal var sharedDownstream: AnyPublisher<Output, Failure>
     
     /// ...
     
@@ -103,15 +71,15 @@ import NIO
     
     /// ...
     
-    private var subcomponents: [Cancellable] = []
+    internal var subcomponents: [Cancellable] = []
     
     /// ...
     
-    private var group: EventLoopGroup
+    internal var group: EventLoopGroup
     
     /// ...
     
-    public init(at remote: SocketAddress, from local: SocketAddress?, using group: EventLoopGroup) {
+    public init(at remote: SocketAddress, from local: SocketAddress?, in group: EventLoopGroup) {
         self.remote = remote
         self.local = local ?? Self.defaultLocalHost
         self.group = group
@@ -136,7 +104,7 @@ import NIO
     private var downstreamLogging: Cancellable {
         return
             downstream
-            .catch { error -> Empty<PeerPresence, Never> in
+            .catch { error -> Empty<Output, Never> in
                 Self.logger.error("radar failed: \(error)")
                 return Empty(completeImmediately: true)
             }
